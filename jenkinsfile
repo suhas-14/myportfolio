@@ -1,0 +1,36 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('git checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/suhas-14/myportfolio.git'
+            }
+        }
+        stage('docker build') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker-key', toolname: 'docker') {
+                        sh 'sudo docker build -t port .'
+                    }
+                }
+            }
+        }
+        stage('docker container') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker-key', toolname: 'docker') {
+                        sh 'sudo docker run -itd -p 45:80 port'
+                    }
+                }
+            }
+        }
+    post {
+        always {
+            echo 'slack Notification'
+            slackSend channel: '#general'
+            message: "*${currentBuild.currentResult}:* Job ${env.JOB_NAME} build ${env.BUILD_NUMBER} \n More Info at: ${env.BUILD_URL}"
+        }
+    }
+    }
+}
